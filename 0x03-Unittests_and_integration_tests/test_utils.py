@@ -28,4 +28,7 @@ class TestAccessNestedMap(TestCase):
         tests that access_nested_map
         raises KeyError correctly
         """
-        self.assertRaises(KeyError, access_nested_map, map, path)
+        with self.assertRaises(KeyError) as ke:
+            access_nested_map(map, path)
+
+        self.assertIn(path[-1], str(ke.exception))
