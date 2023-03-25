@@ -3,13 +3,17 @@
 """
 from typing import Mapping, Sequence
 from unittest import TestCase
+from unittest.mock import Mock, patch
 from parameterized import parameterized
+import requests
 
-from utils import access_nested_map
+from utils import access_nested_map, get_json
 
 
 class TestAccessNestedMap(TestCase):
-    """class for utils modules test"""
+    """class for utils.access_nested_map
+     function modules test
+    """
 
     @parameterized.expand([({'a': 1}, ('a',), 1),
                            ({"a": {"b": 2}}, ('a',), {'b': 2}),
@@ -32,3 +36,23 @@ class TestAccessNestedMap(TestCase):
             access_nested_map(map, path)
 
         self.assertIn(path[-1], str(ke.exception))
+
+
+class TestGetJson(TestCase):
+    """tests for utils.get_json
+    function
+    """
+
+    @parameterized.expand([("http://example.com", {"payload": True}),
+                           ("http://holberton.io", {"payload": False})])
+    @patch('requests.get',)
+    def test_get_json(self, url, payload, mock_get):
+        """tests get_json
+        """
+        mock_get.return_value = Mock(requests.Response, json=lambda: payload)
+
+        res = get_json(url)
+
+        mock_get.assert_called_once()
+        mock_get.assert_called_once_with(url)
+        self.assertEqual(res, payload)
