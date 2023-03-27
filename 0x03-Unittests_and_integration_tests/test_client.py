@@ -2,10 +2,14 @@
 """tests for GithubOrgClient
 """
 from unittest import TestCase
-from unittest.mock import patch, PropertyMock
-from parameterized import parameterized
+from unittest.mock import patch, PropertyMock, Mock
+from parameterized import parameterized, parameterized_class
+from requests import Response
 
 from client import GithubOrgClient
+from fixtures import TEST_PAYLOAD
+
+test_payload = TEST_PAYLOAD[0]
 
 
 class TestGithubOrgClient(TestCase):
@@ -64,7 +68,7 @@ class TestGithubOrgClient(TestCase):
             mock_pub_repos_url.assert_called_once()
             assert repos == ['repo one', 'repo two', 'repo three']
 
-    @parameterized.expand([({"license": {"key": "my_license"}}, 
+    @parameterized.expand([({"license": {"key": "my_license"}},
                             'my_license', True),
                            ({"license": {"key": "other_license"}},
                             'my_license', False)])
@@ -73,3 +77,45 @@ class TestGithubOrgClient(TestCase):
         """
         client = GithubOrgClient('google')
         self.assertEqual(client.has_license(repo, key), res)
+
+
+@parameterized_class([
+    {
+        'org_payload': test_payload[0],
+        'repos_payload': test_payload[1],
+        'expected_repos': test_payload[2],
+        'apache2_repos': test_payload[3]
+    }
+])
+class TestIntegrationGithubOrgClient(TestCase):
+    """integration test for
+    GithubOrgClient.public_repos
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """set up class"""
+        cls.get_patcher = patch('requests.get')
+        cls.mock_get = cls.get_patcher.start()
+        cls.org_url = "https://api.github.com/orgs/{org}"
+
+        def side_effect(url):
+            if url == cls.org_url.format(org='google'):
+                return Mock(Response, json=lambda: cls.org_payload)
+            if url == cls.org_payload['repos_url']:
+                return Mock(Response, json=lambda: cls.repos_payload)
+
+        cls.mock_get.side_effect = side_effect
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        """tears down class
+        """
+        cls.get_patcher.stop()
+
+    def test_public_repos(self):
+        """tests GithubOrgClient.public_repos
+        """
+        client = GithubOrgClient('google')
+
+        assert client.public_repos() == self.expected_repos
