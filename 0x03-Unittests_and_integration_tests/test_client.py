@@ -59,7 +59,6 @@ class TestGithubOrgClient(TestCase):
             mock_pub_repos_url.return_value = 'google/pub_repos'
             client = GithubOrgClient('google')
             repos = client.public_repos()
-            print(repos)
 
             mock_get_json.assert_called_once()
             mock_pub_repos_url.assert_called_once()
